@@ -286,11 +286,11 @@
     <div class="row">
       <div class="field narrow">
         <label>Month</label>
-        <input type="text" id="f_month" placeholder="01" maxlength="2">
+        <input type="text" id="f_month" placeholder="01" maxlength="2" onblur="validateMonth(this)">
       </div>
       <div class="field narrow">
         <label>Day</label>
-        <input type="text" id="f_day" placeholder="30" maxlength="2">
+        <input type="text" id="f_day" placeholder="30" maxlength="2" onblur="validateDay(this)">
       </div>
     </div>
   </div>
@@ -634,6 +634,21 @@
     btn.textContent = active;
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 2000);
+  }
+
+  // ── Validation ────────────────────────────────────────────────────────────
+  function validateMonth(input) {
+    let val = parseInt(input.value, 10);
+    if (isNaN(val) || val < 1) val = 1;
+    if (val > 12) val = 12;
+    input.value = val.toString().padStart(2, '0');
+  }
+
+  function validateDay(input) {
+    let val = parseInt(input.value, 10);
+    if (isNaN(val) || val < 1) val = 1;
+    if (val > 31) val = 31;
+    input.value = val.toString().padStart(2, '0');
   }
 
   document.addEventListener('keydown', e => {
