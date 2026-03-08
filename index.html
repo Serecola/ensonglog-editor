@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Table Row Generator</title>
+  <style>
+    :root {
+      --bg: #f9f9f9;
+      --surface: #ffffff;
+      --border: #ddd;
+      --border-soft: #e8e8e8;
+      --text: #222;
+      --text-muted: #777;
+      --text-dim: #999;
+      --input-bg: #ffffff;
+      --input-bg-alt: #fafafa;
+      --code-bg: #1e1e1e;
+      --code-fg: #d4d4d4;
+      --code-dim: #555;
+      --code-bright: #dcdcaa;
+      --import-bg: #ffffff;
+    }
+
+    [data-theme="dark"] {
+      --bg: #141414;
+      --surface: #1f1f1f;
+      --border: #333;
+      --border-soft: #2a2a2a;
+      --text: #e8e8e8;
+      --text-muted: #888;
+      --text-dim: #666;
+      --input-bg: #2a2a2a;
+      --input-bg-alt: #242424;
+      --code-bg: #0d0d0d;
+      --code-fg: #d4d4d4;
+      --code-dim: #444;
+      --code-bright: #dcdcaa;
+      --import-bg: #1f1f1f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 40px 24px;
+      font-size: 14px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .container { max-width: 760px; margin: 0 auto; }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    h1 { font-size: 1.1rem; font-weight: 600; }
+
+    /* Dark mode toggle */
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .toggle-track {
+      width: 36px;
+      height: 20px;
+      background: var(--border);
+      border-radius: 999px;
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    [data-theme="dark"] .toggle-track { background: #555; }
+
+    .toggle-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 14px;
+      height: 14px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    [data-theme="dark"] .toggle-thumb { transform: translateX(16px); }
+
+    /* Import section */
+    .import-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+      margin-bottom: 28px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .group-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .import-row { display: flex; gap: 8px; align-items: stretch; }
+
+    .import-row textarea {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      font-family: 'Courier New', monospace;
+      color: var(--text);
+      background: var(--input-bg-alt);
+      outline: none;
+      resize: none;
+      min-height: 52px;
+      line-height: 1.5;
+      transition: border-color 0.15s, background 0.2s, color 0.2s;
+    }
+
+    .import-row textarea:focus { border-color: var(--text-muted); background: var(--input-bg); }
+    .import-row textarea::placeholder { color: var(--text-dim); font-family: system-ui, sans-serif; font-size: 0.82rem; }
+    .import-row button { flex: 0 0 auto; align-self: stretch; white-space: nowrap; }
+
+    .import-hint { margin-top: 6px; font-size: 0.72rem; color: var(--text-dim); }
+
+    .import-error {
+      margin-top: 6px;
+      font-size: 0.72rem;
+      color: #dc2626;
+      display: none;
+    }
+
+    .group { margin-bottom: 20px; }
+
+    .row { display: flex; gap: 10px; }
+    .field { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+    .field.narrow { flex: 0 0 90px; }
+    .field.wide { flex: 2; }
+
+    label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    input, select {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 7px 9px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      background: var(--input-bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s, background 0.2s, color 0.2s;
+      width: 100%;
+    }
+
+    input:focus, select:focus { border-color: var(--text-muted); }
+
+    select option { background: var(--input-bg); color: var(--text); }
+
+    .preview-row { display: flex; gap: 8px; align-items: flex-end; }
+    .preview-row .field:first-child { flex: 0 0 160px; }
+
+    .preview-badge {
+      display: inline-block;
+      background: var(--border-soft);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 2px 7px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: monospace;
+      margin-top: 4px;
+    }
+
+    .divider { border: none; border-top: 1px solid var(--border-soft); margin: 20px 0; }
+
+    .actions { display: flex; gap: 8px; margin-top: 24px; }
+
+    button {
+      font-size: 0.83rem;
+      padding: 8px 16px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      background: var(--surface);
+      color: var(--text-muted);
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      font-family: inherit;
+    }
+
+    button:hover { background: var(--input-bg-alt); border-color: var(--text-muted); color: var(--text); }
+
+    .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .btn-primary:hover { opacity: 0.85; background: var(--text); color: var(--bg); }
+
+    .btn-copy { margin-left: auto; }
+    .btn-copy.copied { color: #16a34a; border-color: #16a34a; }
+
+    .output-section { display: none; margin-top: 28px; }
+    .output-section.visible { display: block; }
+
+    .output-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      font-family: 'Courier New', monospace;
+      font-size: 0.78rem;
+      line-height: 1.75;
+      padding: 16px 18px;
+      border-radius: 6px;
+      overflow-x: auto;
+      white-space: pre;
+      transition: background 0.2s;
+    }
+
+    pre .dim { color: var(--code-dim); }
+    pre .bright { color: var(--code-bright); }
+
+    .output-actions { display: flex; justify-content: flex-end; margin-top: 8px; gap: 8px; }
+
+    #accSection { margin-top: 28px; display: none; }
+
+    @media (max-width: 520px) {
+      .row { flex-wrap: wrap; }
+      .field.narrow { flex: 0 0 70px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="top-bar">
+    <h1>Table Row Generator</h1>
+    <div class="toggle" onclick="toggleTheme()" title="Toggle dark mode">
+      <span class="toggle-label" id="themeLabel">Light</span>
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+    </div>
+  </div>
+
+  <!-- Import existing row -->
+  <div class="import-section">
+    <div class="group-label">Import Existing Row</div>
+    <div class="import-row">
+      <textarea id="importInput" placeholder="Paste an existing row here to edit it…"></textarea>
+      <button class="btn-primary" onclick="importRow()">Load</button>
+    </div>
+    <div class="import-hint">Paste a full markdown table row and all fields will be populated automatically.</div>
+    <div class="import-error" id="importError">Could not parse this row. Make sure it's a valid table row starting with <code>|</code>.</div>
+  </div>
+
+  <!-- Month / Day -->
+  <div class="group">
+    <div class="group-label">Date</div>
+    <div class="row">
+      <div class="field narrow">
+        <label>Month</label>
+        <input type="text" id="f_month" placeholder="01" maxlength="2">
+      </div>
+      <div class="field narrow">
+        <label>Day</label>
+        <input type="text" id="f_day" placeholder="30" maxlength="2">
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Work / Brand -->
+  <div class="group">
+    <div class="group-label">Title</div>
+    <div class="row">
+      <div class="field wide">
+        <label>Visual Novel</label>
+        <input type="text" id="f_work" placeholder="Work title">
+      </div>
+      <div class="field">
+        <label>Developer</label>
+        <input type="text" id="f_brand" placeholder="Brand name">
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Song / Type -->
+  <div class="group">
+    <div class="group-label">Song</div>
+    <div class="row">
+      <div class="field wide">
+        <label>Song Title</label>
+        <input type="text" id="f_song" placeholder="Song name">
+      </div>
+      <div class="field" style="flex: 0 0 130px;">
+        <label>Type</label>
+        <input type="text" id="f_type" placeholder="主題歌" list="type-list">
+        <datalist id="type-list">
+          <option value="主題歌">
+          <option value="OP">
+          <option value="ED">
+          <option value="挿入歌">
+          <option value="BGM">
+        </datalist>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Credits -->
+  <div class="group">
+    <div class="group-label">Credits</div>
+    <div class="row">
+      <div class="field">
+        <label>Vocal</label>
+        <input type="text" id="f_vocal">
+      </div>
+      <div class="field">
+        <label>Composer</label>
+        <input type="text" id="f_composer">
+      </div>
+      <div class="field">
+        <label>Arranger</label>
+        <input type="text" id="f_arranger">
+      </div>
+      <div class="field">
+        <label>Lyricist</label>
+        <input type="text" id="f_lyricist">
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Release -->
+  <div class="group">
+    <div class="group-label">Release</div>
+    <div class="row" style="margin-bottom: 10px;">
+      <div class="field wide">
+        <label>Source</label>
+        <input type="text" id="f_source">
+      </div>
+      <div class="field wide">
+        <label>Other</label>
+        <input type="text" id="f_other">
+      </div>
+    </div>
+    <div class="preview-row">
+      <div class="field">
+        <label>Preview Platform</label>
+        <select id="f_preview_type" onchange="updatePreviewBadge()">
+          <option value="">— none —</option>
+          <option value="youtube">YouTube</option>
+          <option value="chobit">chobit.cc</option>
+          <option value="emdb">emdb</option>
+          <option value="twitter">Twitter / X</option>
+          <option value="hp">HP</option>
+          <option value="bilibili">Bilibili</option>
+        </select>
+        <span class="preview-badge" id="previewBadge" style="display:none"></span>
+      </div>
+      <div class="field">
+        <label>Preview URL</label>
+        <input type="text" id="f_preview_url" placeholder="https://...">
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" onclick="generate()">Generate</button>
+    <button onclick="clearAll()">Clear</button>
+    <button id="addBtn" style="display:none" onclick="addToTable()">+ Add to Table</button>
+  </div>
+
+  <!-- Single row output -->
+  <div class="output-section" id="outputSection">
+    <div class="output-label">Generated Row</div>
+    <pre id="outputPre"></pre>
+    <div class="output-actions">
+      <button class="btn-copy" id="copyRowBtn" onclick="copyRow()">Copy Row</button>
+    </div>
+  </div>
+
+  <!-- Accumulated table -->
+  <div id="accSection">
+    <div class="output-label">Accumulated Table</div>
+    <pre id="accPre"></pre>
+    <div class="output-actions">
+      <button onclick="clearTable()">Clear Table</button>
+      <button class="btn-copy" id="copyTableBtn" onclick="copyTable()">Copy Table</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const PREVIEW_MAP = {
+    youtube:  { label: ':fontawesome-brands-youtube:', pattern: /:fontawesome-brands-youtube:/,  wrap: url => `[:fontawesome-brands-youtube:](${url})` },
+    chobit:   { label: ':rabbit:',                     pattern: /:rabbit:/,                      wrap: url => `[:rabbit:](${url})` },
+    emdb:     { label: ':octicons-video-16:',           pattern: /:octicons-video-16:/,            wrap: url => `[:octicons-video-16:](${url})` },
+    twitter:  { label: ':fontawesome-brands-twitter:', pattern: /:fontawesome-brands-twitter:/,  wrap: url => `[:fontawesome-brands-twitter:](${url})` },
+    hp:       { label: 'HP',                           pattern: /^\[HP\]/,                       wrap: url => `[HP](${url})` },
+    bilibili: { label: 'B站',                          pattern: /^\[B站\]/,                      wrap: url => `[B站](${url})` },
+  };
+
+  const HEADER_COLS = ['月','作品','ブランド','曲名','種別','ボーカル','作詞','作曲','編曲','音源','その他','試聴'];
+  const HEADER    = '| ' + HEADER_COLS.join(' | ') + ' |';
+  const SEPARATOR = '| ' + HEADER_COLS.map(() => '---').join(' | ') + ' |';
+
+  let accRows = [];
+
+  // ── Theme ─────────────────────────────────────────────────────────────────
+  function toggleTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeLabel').textContent = isDark ? 'Light' : 'Dark';
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+  }
+
+  // Apply saved theme on load
+  (function() {
+    const saved = localStorage.getItem('theme') ||
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    document.getElementById('themeLabel').textContent = saved === 'dark' ? 'Dark' : 'Light';
+  })();
+
+  // ── Import ────────────────────────────────────────────────────────────────
+  function importRow() {
+    const raw = document.getElementById('importInput').value.trim();
+    const errEl = document.getElementById('importError');
+    errEl.style.display = 'none';
+
+    if (!raw.startsWith('|')) { showImportError(); return; }
+
+    let inner = raw;
+    if (inner.startsWith('|')) inner = inner.slice(1);
+    if (inner.endsWith('|')) inner = inner.slice(0, -1);
+
+    const cols = splitTableRow(inner);
+    if (cols.length < 12) { showImportError(); return; }
+
+    const dateRaw    = cols[0].trim();
+    const monthMatch = dateRaw.match(/^(\d{1,2})/);
+    const dayMatch   = dateRaw.match(/<!--\/(\d{1,2})-->/);
+
+    setVal('f_month',    monthMatch ? monthMatch[1] : '');
+    setVal('f_day',      dayMatch   ? dayMatch[1]   : '');
+    setVal('f_work',     cols[1].trim());
+    setVal('f_brand',    cols[2].trim());
+    setVal('f_song',     cols[3].trim());
+    setVal('f_type',     cols[4].trim());
+    setVal('f_vocal',    cols[5].trim());
+    setVal('f_lyricist', cols[6].trim());
+    setVal('f_composer', cols[7].trim());
+    setVal('f_arranger', cols[8].trim());
+    setVal('f_source',   cols[9].trim());
+    setVal('f_other',    cols[10].trim());
+    parsePreview(cols[11].trim());
+
+    document.getElementById('importInput').value = '';
+    document.querySelector('.group').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function splitTableRow(str) {
+    const cols = [];
+    let current = '';
+    let depth = 0;
+    let i = 0;
+    while (i < str.length) {
+      if (str.slice(i, i+4) === '<!--') {
+        const end = str.indexOf('-->', i);
+        if (end !== -1) { current += str.slice(i, end + 3); i = end + 3; continue; }
+      }
+      const ch = str[i];
+      if (ch === '(') { depth++; current += ch; i++; continue; }
+      if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; i++; continue; }
+      if (ch === '|' && depth === 0) { cols.push(current); current = ''; i++; continue; }
+      current += ch;
+      i++;
+    }
+    if (current.trim() !== '') cols.push(current);
+    return cols;
+  }
+
+  function parsePreview(raw) {
+    if (!raw) { setSelect('f_preview_type', ''); setVal('f_preview_url', ''); updatePreviewBadge(); return; }
+    const urlMatch = raw.match(/\[.*?\]\((.*?)\)/);
+    const url = urlMatch ? urlMatch[1] : '';
+    let detected = '';
+    for (const [key, cfg] of Object.entries(PREVIEW_MAP)) {
+      if (cfg.pattern.test(raw)) { detected = key; break; }
+    }
+    setSelect('f_preview_type', detected);
+    setVal('f_preview_url', url);
+    updatePreviewBadge();
+  }
+
+  function showImportError() { document.getElementById('importError').style.display = 'block'; }
+  function setVal(id, val) { const el = document.getElementById(id); if (el) el.value = val || ''; }
+  function setSelect(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
+
+  // ── Preview badge ─────────────────────────────────────────────────────────
+  function updatePreviewBadge() {
+    const type = document.getElementById('f_preview_type').value;
+    const badge = document.getElementById('previewBadge');
+    if (type && PREVIEW_MAP[type]) {
+      badge.textContent = PREVIEW_MAP[type].label;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  // ── Build row ─────────────────────────────────────────────────────────────
+  function pad(val) { return val.trim().padStart(2, '0') || '  '; }
+
+  // Returns the value or empty string — cells with no content become || not | |
+  function cell(val) { return val.trim(); }
+
+  function buildRow() {
+    const month  = pad(document.getElementById('f_month').value);
+    const day    = pad(document.getElementById('f_day').value);
+
+    const previewType = document.getElementById('f_preview_type').value;
+    const previewUrl  = document.getElementById('f_preview_url').value.trim();
+    let preview = '';
+    if (previewType && previewUrl && PREVIEW_MAP[previewType]) {
+      preview = PREVIEW_MAP[previewType].wrap(previewUrl);
+    }
+
+    const cols = [
+      `${month}<!--/${day}-->`,
+      cell(document.getElementById('f_work').value),
+      cell(document.getElementById('f_brand').value),
+      cell(document.getElementById('f_song').value),
+      cell(document.getElementById('f_type').value),
+      cell(document.getElementById('f_vocal').value),
+      cell(document.getElementById('f_lyricist').value),
+      cell(document.getElementById('f_composer').value),
+      cell(document.getElementById('f_arranger').value),
+      cell(document.getElementById('f_source').value),
+      cell(document.getElementById('f_other').value),
+      preview,
+    ];
+
+    // Join: non-empty cols get spaces around them, empty cols produce ||
+    const inner = cols.map(c => c === '' ? '' : ` ${c} `).join('|');
+    return `|${inner}|`;
+  }
+
+  // ── Generate ──────────────────────────────────────────────────────────────
+  function generate() {
+    const row = buildRow();
+    document.getElementById('outputPre').innerHTML =
+      `<span class="dim">${HEADER}\n${SEPARATOR}\n</span><span class="bright">${escHtml(row)}</span>`;
+    document.getElementById('outputSection').classList.add('visible');
+    document.getElementById('addBtn').style.display = 'inline-block';
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function copyRow() {
+    navigator.clipboard.writeText(buildRow()).then(() => flash('copyRowBtn', 'Copied!', 'Copy Row'));
+  }
+
+  function clearAll() {
+    ['f_month','f_day','f_work','f_brand','f_song','f_type',
+     'f_vocal','f_lyricist','f_composer','f_arranger',
+     'f_source','f_other','f_preview_url'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('f_preview_type').value = '';
+    document.getElementById('previewBadge').style.display = 'none';
+    document.getElementById('outputSection').classList.remove('visible');
+    document.getElementById('addBtn').style.display = 'none';
+  }
+
+  function addToTable() {
+    accRows.push(buildRow());
+    renderTable();
+    document.getElementById('accSection').style.display = 'block';
+    document.getElementById('accSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function renderTable() {
+    document.getElementById('accPre').textContent = [HEADER, SEPARATOR, ...accRows].join('\n');
+  }
+
+  function copyTable() {
+    navigator.clipboard.writeText(document.getElementById('accPre').textContent)
+      .then(() => flash('copyTableBtn', 'Copied!', 'Copy Table'));
+  }
+
+  function clearTable() {
+    accRows = [];
+    document.getElementById('accSection').style.display = 'none';
+  }
+
+  function flash(id, active, original) {
+    const btn = document.getElementById(id);
+    btn.textContent = active;
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 2000);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') generate();
+  });
+</script>
+</body>
+</html>
