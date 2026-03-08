@@ -1,6 +1,7 @@
 # Table Row Generator
 
 A simple browser-based tool for generating Markdown table rows in the format used for visual novel music tracklists.
+https://serecola.github.io/ensonglog-editor/
 
 ## Output format
 
